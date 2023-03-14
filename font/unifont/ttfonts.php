@@ -16,25 +16,19 @@
 *                                                                              *
 *******************************************************************************/
 
-// prevent `constant already defined` errors
-if (!defined('_TTF_MAC_HEADER')) {
-	// Define the value used in the "head" table of a created TTF file
-	// 0x74727565 "true" for Mac
-	// 0x00010000 for Windows
-	// Either seems to work for a font embedded in a PDF file
-	// when read by Adobe Reader on a Windows PC(!)
-	define("_TTF_MAC_HEADER", false);
-
-	// TrueType Font Glyph operators
-	define("GF_WORDS",(1 << 0));
-	define("GF_SCALE",(1 << 3));
-	define("GF_MORE",(1 << 5));
-	define("GF_XYSCALE",(1 << 6));
-	define("GF_TWOBYTWO",(1 << 7));
-}
-
-
 class TTFontFile {
+
+// Define the value used in the "head" table of a created TTF file
+// 0x74727565 "true" for Mac
+// 0x00010000 for Windows
+// Either seems to work for a font embedded in a PDF file
+// when read by Adobe Reader on a Windows PC(!)
+public const _TTF_MAC_HEADER = false;
+public const GF_WORDS = (1 << 0);
+public const GF_SCALE = (1 << 3);
+public const GF_MORE = (1 << 5);
+public const GF_XYSCALE = (1 << 6);
+public const GF_TWOBYTWO = (1 << 7);
 
 public $maxUni;
 public $maxUniChar;
@@ -757,9 +751,9 @@ public $maxStrLenRead;
 
 			if ($glyphLen > 2 && ($up[1] & (1 << 15)) ) {	// If number of contours <= -1 i.e. composite glyph
 				$pos_in_glyph = 10;
-				$flags = GF_MORE;
+				$flags = self::GF_MORE;
 				$nComponentElements = 0;
-				while ($flags & GF_MORE) {
+				while ($flags & self::GF_MORE) {
 					$nComponentElements += 1;	// number of glyphs referenced at top level
 					$up = unpack("n", substr($data,$pos_in_glyph,2));
 					$flags = $up[1];
@@ -768,11 +762,11 @@ public $maxStrLenRead;
 					$this->glyphdata[$originalGlyphIdx]['compGlyphs'][] = $glyphIdx;
 					$data = $this->_set_ushort($data, $pos_in_glyph + 2, $glyphSet[$glyphIdx]);
 					$pos_in_glyph += 4;
-					if ($flags & GF_WORDS) { $pos_in_glyph += 4; }
+					if ($flags & self::GF_WORDS) { $pos_in_glyph += 4; }
 					else { $pos_in_glyph += 2; }
-					if ($flags & GF_SCALE) { $pos_in_glyph += 2; }
-					else if ($flags & GF_XYSCALE) { $pos_in_glyph += 4; }
-					else if ($flags & GF_TWOBYTWO) { $pos_in_glyph += 8; }
+					if ($flags & self::GF_SCALE) { $pos_in_glyph += 2; }
+					else if ($flags & self::GF_XYSCALE) { $pos_in_glyph += 4; }
+					else if ($flags & self::GF_TWOBYTWO) { $pos_in_glyph += 8; }
 				}
 				$maxComponentElements = max($maxComponentElements, $nComponentElements);
 			}
@@ -863,8 +857,8 @@ public $maxStrLenRead;
 		$numberOfContours = $this->read_short();
 		if ($numberOfContours < 0) {
 			$this->skip(8);
-			$flags = GF_MORE;
-			while ($flags & GF_MORE) {
+			$flags = self::GF_MORE;
+			while ($flags & self::GF_MORE) {
 				$flags = $this->read_ushort();
 				$glyphIdx = $this->read_ushort();
 				if (!isset($glyphSet[$glyphIdx])) {
@@ -874,15 +868,15 @@ public $maxStrLenRead;
 				$savepos = ftell($this->fh);
 				$this->getGlyphs($glyphIdx, $start, $glyphSet, $subsetglyphs);
 				$this->seek($savepos);
-				if ($flags & GF_WORDS)
+				if ($flags & self::GF_WORDS)
 					$this->skip(4);
 				else
 					$this->skip(2);
-				if ($flags & GF_SCALE)
+				if ($flags & self::GF_SCALE)
 					$this->skip(2);
-				else if ($flags & GF_XYSCALE)
+				else if ($flags & self::GF_XYSCALE)
 					$this->skip(4);
-				else if ($flags & GF_TWOBYTWO)
+				else if ($flags & self::GF_TWOBYTWO)
 					$this->skip(8);
 			}
 		}
@@ -1051,7 +1045,7 @@ public $maxStrLenRead;
 		$rangeShift = $numTables * 16 - $searchRange;
 
 		// Header
-		if (_TTF_MAC_HEADER) {
+		if (self::_TTF_MAC_HEADER) {
 			$stm .= (pack("Nnnnn", 0x74727565, $numTables, $searchRange, $entrySelector, $rangeShift));	// Mac
 		}
 		else {
