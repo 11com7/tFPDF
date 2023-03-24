@@ -1,4 +1,8 @@
 <?php
+
+use Mpdf\Cache;
+use Mpdf\Fonts\FontCache;
+
 /*******************************************************************************
 * tFPDF (based on FPDF 1.85)                                                   *
 *                                                                              *
@@ -484,6 +488,7 @@ function AddFont($family, $style='', $file='', $uni=false)
 		else { $ttffilename = $this->fontpath.'unifont/'.$file ; }
 		$unifilename = $this->fontpath.'unifont/'.strtolower(substr($file ,0,(strpos($file ,'.'))));
 		$name = '';
+		$type = null;
 		$originalsize = 0;
 		$ttfstat = stat($ttffilename);
 		if (file_exists($unifilename.'.mtx.php')) {
@@ -492,8 +497,11 @@ function AddFont($family, $style='', $file='', $uni=false)
 		if (!isset($type) ||  !isset($name) || $originalsize != $ttfstat['size']) {
 			$ttffile = $ttffilename;
 //			require_once($this->fontpath.'unifont/ttfonts.php');
-			$ttf = new TTFontFile();
-			$ttf->getMetrics($ttffile);
+			// dom, 2023-03-24: patch tFDP to use the more modern TTFontFile class from mpdf to prevent
+			//					`Uninitialized string offset xxxxx` error on loading ttf files with PHP 8.1
+			//					in …/unicode/ttfonts.php:900
+			$ttf = new \Mpdf\TTFontFile(new FontCache(new Cache(rtrim($this->fontpath, '/').'/unifont/ttfontdata')), 'win');
+			$ttf->getMetrics($ttffile, $fontkey);
 			$cw = $ttf->charWidths;
 			$name = preg_replace('/[ ()]/','',$ttf->fullName);
 
@@ -1890,7 +1898,8 @@ protected function _putfonts()
 		else if ($type=='TTF') {
 			$this->fonts[$k]['n']=$this->n+1;
 //			require_once($this->fontpath.'unifont/ttfonts.php');
-			$ttf = new TTFontFile();
+			// dom, 2023-03-24: use more modern TTFontFile class from mpdf
+			$ttf = new \Mpdf\TTFontFile(new FontCache(new Cache(rtrim($this->fontpath, '/').'/unifont/ttfontdata')), 'win');
 			$fontname = 'MPDFAA'.'+'.$font['name'];
 			$subset = $font['subset'];
 			unset($subset[0]);
